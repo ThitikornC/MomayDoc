@@ -833,7 +833,7 @@ function initializeChart() {
       btn.type = 'button';
       btn.textContent = 'Phase balance';
       btn.setAttribute('aria-pressed', 'false');
-      btn.style.cssText = 'position:absolute; right:10px; bottom:10px; background:#fff; border:1px solid #ccc; padding:6px 10px; border-radius:8px; font-size:13px; z-index:40; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.08);';
+      btn.style.cssText = 'position:absolute; right:12px; bottom:30px; background:#fffef8; color:#3b3305; border:1px solid #74640a; padding:4px 8px; border-radius:6px; font-size:11px; z-index:40; cursor:pointer; box-shadow:inset 0 1px 0 rgba(255,255,255,0.6), 0 2px 0 #3b3305; max-width:120px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;';
 
       // initial state: OFF -> show total, hide phases (datasets 3/4/5 hidden by default)
       btn.addEventListener('click', () => {
@@ -849,9 +849,39 @@ function initializeChart() {
           chart.data.datasets[5].hidden = !turnOn; // phase C
           chart.update();
         }
+        // show/hide legend accordingly
+        try {
+          const lg = container.querySelector('#phaseLegend');
+          if (lg) lg.style.display = turnOn ? 'flex' : 'none';
+        } catch (e) { /* ignore */ }
       });
 
       container.appendChild(btn);
+
+      // Legend (center-bottom) showing phase color mapping — hidden by default
+      const legend = document.createElement('div');
+      legend.id = 'phaseLegend';
+      legend.style.cssText = 'position:absolute; left:50%; transform:translateX(-50%); bottom:10px; display:none; gap:8px; align-items:center; z-index:40; font-size:10px; background:transparent; padding:0; border:none; box-shadow:none;';
+
+      const legendItems = [
+        { label: 'Phase A', color: '#ff0000' },
+        { label: 'Phase B', color: '#ffd700' },
+        { label: 'Phase C', color: '#1e90ff' }
+      ];
+      legendItems.forEach(it => {
+        const item = document.createElement('div');
+        item.style.cssText = 'display:flex; align-items:center; gap:6px; color:#222;';
+        const dot = document.createElement('span');
+        dot.style.cssText = `width:10px; height:10px; border-radius:50%; display:inline-block; background:${it.color}; border:1px solid rgba(0,0,0,0.06);`;
+        const txt = document.createElement('span');
+        txt.textContent = it.label;
+        txt.style.fontSize = '10px';
+        item.appendChild(dot);
+        item.appendChild(txt);
+        legend.appendChild(item);
+      });
+
+      container.appendChild(legend);
     } catch (e) { /* ignore UI errors */ }
   })();
 
