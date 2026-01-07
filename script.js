@@ -133,9 +133,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   // ================= Constants =================
   const V = 400;
   const root3 = Math.sqrt(3);
-  const floor1_maxA = 150;
+  const floor1_maxA = 100;
   const floor1_maxKW = root3 * V * floor1_maxA / 1000;
-  const total_maxA = 150;
+  const total_maxA = 100;
   const total_maxKW = root3 * V * total_maxA / 1000;
 
   // ================= Cache Management =================
@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', async function() {
       cache._powerFetching = true;
 
       // Fetch latest in background (stale-while-revalidate)
-      fetch(`${API_BASE}/daily-energy/pm_airlib?date=` + localDate)
+      fetch(`${API_BASE}/daily-energy/pm_doc?date=` + localDate)
         .then(res => res.json())
         .then(json => {
           const data = json.data || [];
@@ -503,7 +503,7 @@ async function fetchDailyData(date){
             let combined = [];
             for (const dstr of fetchDates) {
               try {
-                const r = await fetch(`${API_BASE}/daily-energy/pm_airlib?date=${dstr}`);
+                const r = await fetch(`${API_BASE}/daily-energy/pm_doc?date=${dstr}`);
                 const j = await r.json();
                 combined = combined.concat(j.data ?? []);
               } catch(e) { /* ignore per-day failure */ }
@@ -534,7 +534,7 @@ async function fetchDailyData(date){
     let combined = [];
     for (const dstr of fetchDates) {
       try {
-        const res = await fetch(`${API_BASE}/daily-energy/pm_airlib?date=${dstr}`);
+        const res = await fetch(`${API_BASE}/daily-energy/pm_doc?date=${dstr}`);
         const json = await res.json();
         combined = combined.concat(json.data ?? []);
       } catch (e) {
@@ -571,14 +571,23 @@ async function updateChartData(date){
 
   const values = await fetchDailyData(date);
 
-  // สร้าง array 1440 จุด (1 นาทีต่อจุด)
+  // สร้าง array 1440 จุด (1 นาทีต่อจุด) สำหรับ total และแต่ละเฟส A/B/C
   const chartData = new Array(1440).fill(null);
+  const phaseA = new Array(1440).fill(null);
+  const phaseB = new Array(1440).fill(null);
+  const phaseC = new Array(1440).fill(null);
   values.forEach(item => {
     const t = new Date(item.timestamp);
     // use UTC hours/minutes so data aligns with API timestamps (no local +7 shift)
     const idx = t.getUTCHours()*60 + t.getUTCMinutes();
-    // prefer active_power_total / power_active then legacy power
-    if (idx >= 0 && idx < chartData.length) chartData[idx] = item.active_power_total ?? item.power ?? item.power_active ?? null;
+    if (idx >= 0 && idx < chartData.length) {
+      // total prefers `active_power_total` then fallbacks
+      chartData[idx] = item.active_power_total ?? item.power ?? item.power_active ?? null;
+      // per-phase values (may be undefined)
+      phaseA[idx] = (item.active_power_a !== undefined) ? item.active_power_a : null;
+      phaseB[idx] = (item.active_power_b !== undefined) ? item.active_power_b : null;
+      phaseC[idx] = (item.active_power_c !== undefined) ? item.active_power_c : null;
+    }
   });
 
   // คำนวณ Max / Avg
@@ -599,6 +608,9 @@ async function updateChartData(date){
     const sampled = [];
     const sampledMax = new Array(Math.ceil(fullLength / factor)).fill(null);
     const sampledAvg = new Array(Math.ceil(fullLength / factor)).fill(null);
+    const sampledA = new Array(Math.ceil(fullLength / factor)).fill(null);
+    const sampledB = new Array(Math.ceil(fullLength / factor)).fill(null);
+    const sampledC = new Array(Math.ceil(fullLength / factor)).fill(null);
     const labels = getMinuteLabels();
     const sampledLabels = [];
     for (let i = 0, si = 0; i < fullLength; i += factor, si++) {
@@ -618,17 +630,36 @@ async function updateChartData(date){
         sampledMax[si] = null;
       }
       sampledAvg[si] = avgVal;
+      // sample per-phase: pick local max within window per phase so peaks remain visible
+      let localA = null, localB = null, localC = null;
+      for (let j = windowStart; j <= windowEnd; j++) {
+        const va = phaseA[j];
+        const vb = phaseB[j];
+        const vc = phaseC[j];
+        if (va !== null && va !== undefined && (localA === null || va > localA)) localA = va;
+        if (vb !== null && vb !== undefined && (localB === null || vb > localB)) localB = vb;
+        if (vc !== null && vc !== undefined && (localC === null || vc > localC)) localC = vc;
+      }
+      sampledA[si] = localA;
+      sampledB[si] = localB;
+      sampledC[si] = localC;
       sampledLabels.push(labels[windowStart]);
     }
     chart.data.labels = sampledLabels;
     chart.data.datasets[0].data = sampled;
     chart.data.datasets[1].data = sampledMax;
     chart.data.datasets[2].data = sampledAvg;
+    chart.data.datasets[3].data = sampledA;
+    chart.data.datasets[4].data = sampledB;
+    chart.data.datasets[5].data = sampledC;
   } else {
     chart.data.labels = getMinuteLabels();
     chart.data.datasets[0].data = chartData;
     chart.data.datasets[1].data = new Array(fullLength).fill(null).map((_,i)=>i===maxIdx?maxVal:null);
     chart.data.datasets[2].data = new Array(fullLength).fill(avgVal);
+    chart.data.datasets[3].data = phaseA;
+    chart.data.datasets[4].data = phaseB;
+    chart.data.datasets[5].data = phaseC;
   }
 
   chart.update('none'); // อัปเดตแบบไม่มี animation
@@ -708,7 +739,10 @@ function initializeChart() {
     datasets:[
       {label:'Power', data:new Array(1440).fill(null), borderColor:'#8B4513', backgroundColor: gradient, fill:true, borderWidth:0.5, tension:0.3, pointRadius:0},
       {label:'Max', data:new Array(1440).fill(null), borderColor:'#ff9999', pointRadius:5, pointBackgroundColor:'#ff9999', fill:false, showLine:false},
-      {label:'Average', data:new Array(1440).fill(null), borderColor:'#000', borderDash:[5,5], fill:false, pointRadius:0, borderWidth:1}
+      {label:'Average', data:new Array(1440).fill(null), borderColor:'#000', borderDash:[5,5], fill:false, pointRadius:0, borderWidth:1},
+      {label:'Phase A', data:new Array(1440).fill(null), borderColor:'#ff0000', backgroundColor:'rgba(255,0,0,0.06)', fill:false, pointRadius:0, borderWidth:1, hidden:true},
+      {label:'Phase B', data:new Array(1440).fill(null), borderColor:'#ffd700', backgroundColor:'rgba(255,215,0,0.06)', fill:false, pointRadius:0, borderWidth:1, hidden:true},
+      {label:'Phase C', data:new Array(1440).fill(null), borderColor:'#1e90ff', backgroundColor:'rgba(30,144,255,0.06)', fill:false, pointRadius:0, borderWidth:1, hidden:true}
     ]
   };
 
@@ -786,6 +820,40 @@ function initializeChart() {
 
   chart = new Chart(ctx, config);
   chartInitialized = true;
+
+  // Create a single toggle button: when ON show Phase A/B/C, when OFF show total power
+  (function createPhaseToggleButton(){
+    try {
+      const container = canvas.parentElement || document.querySelector('.Realtime_Container');
+      if (!container) return;
+      if (getComputedStyle(container).position === 'static') container.style.position = 'relative';
+
+      const btn = document.createElement('button');
+      btn.id = 'phaseToggleBtn';
+      btn.type = 'button';
+      btn.textContent = 'Phase balance';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.style.cssText = 'position:absolute; right:10px; bottom:10px; background:#fff; border:1px solid #ccc; padding:6px 10px; border-radius:8px; font-size:13px; z-index:40; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.08);';
+
+      // initial state: OFF -> show total, hide phases (datasets 3/4/5 hidden by default)
+      btn.addEventListener('click', () => {
+        const isOn = btn.getAttribute('aria-pressed') === 'true';
+        const turnOn = !isOn;
+        btn.setAttribute('aria-pressed', String(turnOn));
+        btn.style.background = turnOn ? '#f5f5f5' : '#fff';
+        // when ON -> show phases and hide total
+        if (chart && chart.data && chart.data.datasets) {
+          chart.data.datasets[0].hidden = turnOn; // total
+          chart.data.datasets[3].hidden = !turnOn; // phase A
+          chart.data.datasets[4].hidden = !turnOn; // phase B
+          chart.data.datasets[5].hidden = !turnOn; // phase C
+          chart.update();
+        }
+      });
+
+      container.appendChild(btn);
+    } catch (e) { /* ignore UI errors */ }
+  })();
 
   // Responsive axis font sizing helper
   function getResponsiveSizes() {
@@ -1784,7 +1852,7 @@ if ('Notification' in window && Notification.permission === 'default') {
     if (!res.ok) throw new Error("Network response was not ok");
     const json = await res.json();
 
-    const energyRes = await fetch(`${API_BASE}/daily-energy/pm_airlib?date=${apiDate}`);
+    const energyRes = await fetch(`${API_BASE}/daily-energy/pm_doc?date=${apiDate}`);
     const energyJson = await energyRes.json();
     const energyData = energyJson.data || [];
 
