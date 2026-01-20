@@ -1,7 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+}
 
-/* ================= Body ================= */
-@keyframes shake {
+/* Small iPad nudge: reduce right-side crowding by adjusting paddings
+   This moves visible text slightly left and ensures `Date_install` has a small right gutter. */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .ClientName_Container {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    margin-left: 0 !important;
+  }
+  .ClientName_Container .Date_install {
+    padding-right: 8px !important;
+    white-space: nowrap !important;
+  }
+  .Top_Container {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+}
+
+body {
   0%, 100% { transform: rotate(0deg); }
   10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
   20%, 40%, 60%, 80% { transform: rotate(10deg); }
@@ -12,10 +30,19 @@
   .Top_Container {
     gap: 10px;
     justify-content: space-between;
+    /* keep boxes on the same row for mobile/tablet */
+    flex-wrap: nowrap;
   }
   .Top_Container .ClientName_Container {
     width: 48%;
     margin-left: 0;
+  }
+  /* Ensure both left/right children behave predictably in this breakpoint */
+  .Top_Container .ClientName_Container,
+  .Top_Container .ElectricalBill_Container {
+    flex: 0 0 48%;
+    max-width: 48%;
+    box-sizing: border-box;
   }
   .Main_Container, .Main_Container2, .Realtime_Container {
     width: calc(100% - 24px);
@@ -62,6 +89,61 @@
     max-width: 360px;
   }
   .Top_Container { gap: 8px; padding: 6px; }
+  /* keep boxes on the same row for narrow phones */
+  .Top_Container {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    overflow-x: auto; /* allow horizontal scroll if viewport is very narrow */
+  }
+  /* Make left and right boxes match width on narrow screens */
+  .Top_Container .ClientName_Container,
+  .Top_Container .ElectricalBill_Container {
+    width: 48%;
+    box-sizing: border-box; /* include border/padding in width */
+    margin-left: 0; /* override negative shift */
+    padding: 10px;
+    min-height: 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  /* Layout & typography fixes inside the left box for narrow screens */
+  .Top_Container .ClientName_Container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    text-align: left;
+    min-height: 64px;
+    gap: 6px;
+  }
+  .Top_Container .ClientName_Container .ClientName {
+    font-size: 14px !important;
+    line-height: 1.05;
+    margin: 0;
+    white-space: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .Top_Container .ClientName_Container .Date_install,
+  .Top_Container .ClientName_Container .ClientNo {
+    font-size: 14px !important;
+    margin: 0;
+    color: #222;
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+  }
+  /* Strong mobile font-size reductions */
+  .Top_Container .ClientName {
+    font-size: 11px !important;
+    line-height: 1.05 !important;
+  }
+  .Top_Container .ClientName_Container .Date_install,
+  .Top_Container .ClientName_Container .ClientNo {
+    font-size: 10px !important;
+    line-height: 1.05 !important;
+  }
   #phaseToggleBtn { right: 8px; bottom: 8px; padding: 5px 6px; font-size: 11px; }
   #phaseLegend { right: 8px; bottom: 44px; font-size: 10px; padding: 4px 6px; }
   .ClientName { font-size: 10px; line-height: 1; }
@@ -99,6 +181,43 @@
   font-size: 10px !important;
 }
 
+/* ================= iPad normalization ================= */
+/* Ensure iPad portrait and landscape use the same base font-size */
+@media (min-width: 768px) and (max-width: 1024px) {
+  html {
+    /* fixed base so orientation doesn't change readable size */
+    font-size: 16px !important;
+  }
+
+  /* normalize commonly sized containers to use rems so they follow html size */
+  .ClientName_Container,
+  .ElectricalBill_Container,
+  .Main_Container,
+  .Main_Container2,
+  .Floor_Container {
+    font-size: 1rem;
+  }
+
+  /* Reduce text sizes slightly on iPad to improve fit and readability */
+  .ClientName_Container { font-size: 0.92rem; padding: 8px; }
+  .ClientName_Container .ClientName { font-size: 0.98rem; line-height: 1.02; }
+
+  /* Force Date_install onto a single line on iPad: smaller font + no-wrap + ellipsis */
+  .ClientName_Container .Date_install,
+  .ClientName_Container .ClientNo {
+    font-size: 0.78rem;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+
+  /* Ensure electrical box text also scales down a bit on iPad */
+  .ElectricalBill_Container { font-size: 0.92rem; }
+  .ElectricalBill_Container span { font-size: 0.85rem; }
+
+}
 body {
   font-family: 'Roboto', serif;
   display: flex;
@@ -112,6 +231,32 @@ body {
   position: relative;      /* สำหรับ pseudo-element */
   overflow-x: hidden;
   z-index: 1;              /* ให้เนื้อหาอยู่เหนือ pseudo-element */
+}
+
+/* Expand horizontal inner spacing of main containers: 10% left + 10% right = 20% */
+/* Uses box-sizing so borders/padding don't grow visual overflow */
+.Main_Container,
+.Main_Container2,
+.Realtime_Container,
+.ClientName_Container,
+.ElectricalBill_Container,
+.Floor_Container {
+  box-sizing: border-box;
+  padding-left: 10%;
+  padding-right: 10%;
+}
+
+/* Reduce horizontal padding on small screens to preserve usable width */
+@media (max-width: 420px) {
+  .Main_Container,
+  .Main_Container2,
+  .Realtime_Container,
+  .ClientName_Container,
+  .ElectricalBill_Container,
+  .Floor_Container {
+    padding-left: 4%;
+    padding-right: 4%;
+  }
 }
 
 /* Gradient floating background */
@@ -1081,37 +1226,52 @@ font-size: 14px;
 .ClientName {
   font-size: 12px;
   font-weight: bold;
-  white-space: nowrap; 
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.6); 
-  margin-left: 0;       /* เลื่อนไปซ้าย */
-  margin-right: auto;   /* กึ่งกลางหรือขยับขวาได้ */
-  position: relative;   /* หรือ absolute ถ้าต้องการวางทับ */
-  top: 0;               /* ลบ top ที่ไม่จำเป็น */
+  white-space: normal;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
+  margin: 0;
+  padding: 0;
+  display: block;
+  line-height: 1.15;
+  position: relative;
 }
 .Date_install{
   font-size: 12px;
   font-weight: bold;
-  top: 23%;            /* ปรับตำแหน่งแนวตั้ง */
-  right: 80% ;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.6); 
+  margin: 0;
+  padding: 0;
+  display: block;
+  line-height: 1.15;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
 }
 .ClientNo {
   font-size: 12px;
   font-weight: bold;
-  top: 23%;            /* ปรับตำแหน่งแนวตั้ง */
-  right: 50% ;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.6); 
+  margin: 0;
+  padding: 0;
+  display: block;
+  line-height: 1.15;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
 }
 
 /* Responsive adjustments for narrow screens (e.g. iPad portrait) */
-@media (max-width: 820px) {
+/* Apply only for widths between 421px and 820px so very-narrow phones keep percentage widths */
+@media (min-width: 421px) and (max-width: 820px) {
   .ClientName_Container {
-    width: 140px; /* reduce container width */
-    height: 64px;
-    padding: 6px 8px;
+    width: 48%; /* match percentage layout with right box */
+    height: auto;
+    padding: 8px 10px;
+    box-sizing: border-box;
+    margin-left: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    text-align: left;
+    gap: 6px;
+    min-height: 64px;
   }
   .ClientName {
-    font-size: 11px !important;
+    font-size: 14px !important;
     white-space: normal !important;
     line-height: 1.1;
     overflow: hidden;
@@ -1119,12 +1279,15 @@ font-size: 14px;
     max-height: 2.4em;
   }
   .Date_install, .ClientNo {
-    font-size: 10px !important;
+    font-size: 14px !important;
     white-space: normal !important;
     line-height: 1.05;
     overflow: hidden;
     text-overflow: ellipsis;
     max-height: 2.2em;
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
   }
 }
 
@@ -3406,18 +3569,21 @@ color: #000000;
     text-shadow: 1px 2px 4px rgba(0,0,0,0.6); /* เพิ่มเงา */
 }
 .ClientName_Container{
-    width: 160px;
-  height: 85px;
+    width: 48%;
+  height: auto;
   font-size: 12px;
-  /* shift further left */
-  margin-left: -8px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  margin-left: 0;
 }
 
 .ElectricalBill_Container {
-      width: 160px;
-  height: 85px;
+      width: 48%;
+  height: auto;
   font-size: 12px;
-  margin-left: 2px;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  margin-left: 0;
 }
 .Realtime_Container {
   width: 340px;
@@ -3924,3 +4090,64 @@ color: #000000;
 #calendar .fc-event, #calendarPopup .fc-event, #DatePopup .fc-event { font-size: 9px !important; }
 #calendar .fc-event .fc-event-title, #calendar .fc-event .fc-event-time { font-size: 9px !important; }
 #popup-bill, #popup-unit { font-size: 10px !important; }
+
+/* Strong override for very narrow screens: force left/right boxes equal width */
+@media (max-width: 420px) {
+  .Top_Container .ClientName_Container,
+  .Top_Container .ElectricalBill_Container {
+    width: 48% !important;
+    box-sizing: border-box !important;
+    margin-left: 0 !important;
+    padding: 8px !important;
+    min-width: 0 !important;
+  }
+  /* Remove negative margins from any later rules */
+  .ClientName_Container, .ElectricalBill_Container { margin-left: 0 !important; }
+}
+
+/* SUPER STRONG OVERRIDES: force side-by-side on mobile/tablet */
+@media (max-width: 820px) {
+  .Top_Container {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .Top_Container > .ClientName_Container,
+  .Top_Container > .ElectricalBill_Container {
+    flex: 0 0 calc(50% - 8px) !important;
+    max-width: calc(50% - 8px) !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 8px !important;
+  }
+}
+
+
+/* Ensure ClientName matches the DailyBill (THB) size on mobile/tablet */
+.Top_Container .ClientName {
+  font-size: 18px !important;
+  line-height: 1.05 !important;
+}
+
+@media (max-width: 375px) {
+  .Top_Container .ClientName { font-size: 18px !important; }
+  .Top_Container .ClientName_Container .Date_install,
+  .Top_Container .ClientName_Container .ClientNo { font-size: 16px !important; }
+}
+
+/* iPad portrait: make client text match .unit size */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation:portrait) {
+  .Top_Container .ClientName,
+  .Top_Container .ClientName_Container .Date_install,
+  .Top_Container .ClientName_Container .ClientNo {
+    font-size: 14px !important;
+    line-height: 1.05 !important;
+  }
+}
+
