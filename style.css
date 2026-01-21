@@ -4491,3 +4491,61 @@ color: #000000;
   }
 }
 
+/* Make iPad (landscape) match iPad (portrait) sizes so both orientations look identical */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation:landscape) {
+  /* Client name / left box */
+  .Top_Container .ClientName,
+  .Top_Container .ClientName_Container .ClientName {
+    font-size: 26px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* date / usernumber */
+  .Top_Container .ClientName_Container .Date_install,
+  .Top_Container .ClientName_Container .ClientNo {
+    font-size: 13px !important;
+    line-height: 1 !important;
+  }
+
+  /* top-right bill values */
+  #DailyBill {
+    font-size: 26px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.5) !important;
+    text-align: center !important;
+  }
+  .unit {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    text-align: center !important;
+  }
+
+  /* Meter headings on both pages */
+  .Meter h1,
+  .Meter2 h1 {
+    font-size: 14px !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+  }
+
+  /* Popup / savings sizing parity */
+  .popupValue1,
+  .popupValue2 {
+    font-size: 16px !important;
+    padding: 8px 12px !important;
+    border-width: 6px !important;
+  }
+  .popupValue1 span,
+  .popupValue2 span,
+  #kwangBill,
+  #kwangMonth {
+    font-size: 16px !important;
+    line-height: 1 !important;
+  }
+}
+
